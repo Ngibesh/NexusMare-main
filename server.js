@@ -10,13 +10,15 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Ensure uploads directory exists
+// Ensure required directories exist (Railway may not have them)
 const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
-}
+const dbDir = path.join(__dirname, 'data'); // separate folder for database
+if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
+const dbPath = path.join(dbDir, 'database.sqlite');
 
-// Configure multer storage
+// Multer config (same as before)
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => {
@@ -25,41 +27,37 @@ const storage = multer.diskStorage({
   }
 });
 
-// File filter: only images
 const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|gif|webp/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = allowedTypes.test(file.mimetype);
-  if (extname && mimetype) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only image files are allowed (jpg, png, gif, webp)'));
-  }
+  if (extname && mimetype) cb(null, true);
+  else cb(new Error('Only image files are allowed'));
 };
 
 const upload = multer({
-  storage: storage,
-  limits: { fileSize: 30 * 1024 * 1024 }, // 30 MB
-  fileFilter: fileFilter
+  storage,
+  limits: { fileSize: 30 * 1024 * 1024 },
+  fileFilter
 });
 
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
+app.use(cors({ origin: process.env.CORS_ORIGIN || '*', credentials: true }));
 app.use(session({
   secret: process.env.SESSION_SECRET || 'default-secret-change-me',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false, httpOnly: true, maxAge: 3600000 }
+  cookie: { secure: false, httpOnly: true, maxAge: 3600000 } // secure: true if using HTTPS
 }));
 
 // Serve static files (frontend + uploads)
 app.use(express.static(path.join(__dirname, '/')));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(uploadDir));
 
 // ---------- Database setup ----------
-const db = new sqlite3.Database('./database.sqlite');
+const db = new sqlite3.Database(dbPath);
 
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS payments (
@@ -126,7 +124,7 @@ app.get('/api/admin/check', (req, res) => {
   res.json({ admin: !!req.session.admin });
 });
 
-// Payment submission (with file upload - required)
+// Payment submission (file required)
 app.post('/api/payments', upload.single('screenshot'), (req, res) => {
   const { fullName, email, transactionId } = req.body;
   if (!fullName || !email || !transactionId) {
@@ -218,7 +216,7 @@ app.get('/api/admin/affiliates', (req, res) => {
   });
 });
 
-// Admin: approve/reject affiliate
+// Admin: approve affiliate
 app.post('/api/admin/affiliate/approve', (req, res) => {
   if (!req.session.admin) return res.status(403).json({ error: 'Unauthorized' });
   const { id } = req.body;
@@ -233,6 +231,7 @@ app.post('/api/admin/affiliate/approve', (req, res) => {
   });
 });
 
+// Admin: reject affiliate
 app.post('/api/admin/affiliate/reject', (req, res) => {
   if (!req.session.admin) return res.status(403).json({ error: 'Unauthorized' });
   const { id } = req.body;
@@ -252,7 +251,7 @@ app.get('/api/admin/commissions', (req, res) => {
   });
 });
 
-// Serve frontend
+// Serve frontend (must be after API routes)
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
