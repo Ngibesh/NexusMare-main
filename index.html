@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>NEXUSMARE | Multi-Agent Real Engine</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* ========== ALL STYLES (same as before) ========== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background-color: #050816; font-family: 'Inter', sans-serif; color: #eef5ff; line-height: 1.5; overflow-x: hidden; cursor: default; }
+        h1, h2, h3, .logo-text, .cta-button, .nav-link { font-family: 'Orbitron', monospace; }
+        .container { max-width: 1300px; margin: 0 auto; padding: 0 2rem; }
+        section { padding: 5rem 0; position: relative; z-index: 2; }
+        .glass-card { background: rgba(10, 20, 30, 0.45); backdrop-filter: blur(12px); border-radius: 2rem; border: 1px solid rgba(0, 243, 255, 0.25); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 12px rgba(0, 243, 255, 0.2); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .glass-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0, 243, 255, 0.15), 0 0 20px #00f3ff40; border-color: #bf00ff; }
+        .neon-gradient { background: linear-gradient(135deg, #00f3ff, #bf00ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .neon-icon { color: #00f3ff; filter: drop-shadow(0 0 6px #00f3ff); }
+        .loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #03050b; display: flex; justify-content: center; align-items: center; z-index: 9999; transition: opacity 0.8s ease, visibility 0.8s; }
+        .loader.hide { opacity: 0; visibility: hidden; }
+        .neon-loader { width: 60px; height: 60px; border: 4px solid rgba(0, 243, 255, 0.2); border-top: 4px solid #00f3ff; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 1rem; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loader-content { text-align: center; font-family: 'Orbitron'; letter-spacing: 3px; }
+        #particleCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+        .cursor-glow { width: 400px; height: 400px; background: radial-gradient(circle, rgba(0,243,255,0.15) 0%, rgba(191,0,255,0) 70%); position: fixed; border-radius: 50%; pointer-events: none; z-index: 999; transform: translate(-50%, -50%); transition: transform 0.05s linear; opacity: 0.6; }
+        .navbar { position: sticky; top: 1rem; margin: 0 1.5rem; z-index: 100; border-radius: 3rem; background: rgba(5, 8, 22, 0.7); backdrop-filter: blur(16px); }
+        .nav-container { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem 2rem; }
+        .logo-text { font-size: 1.6rem; font-weight: 800; cursor: pointer; }
+        .neon { color: #00f3ff; text-shadow: 0 0 8px #00f3ff; }
+        .nav-links { display: flex; gap: 2rem; align-items: center; }
+        .nav-link { text-decoration: none; color: #eef5ff; font-weight: 500; transition: 0.2s; }
+        .nav-link:hover, .buy-nav { color: #00f3ff; text-shadow: 0 0 6px #00f3ff; }
+        .menu-icon { display: none; font-size: 1.8rem; cursor: pointer; }
+        @media (max-width: 900px) { .nav-links { position: fixed; top: 85px; left: -100%; flex-direction: column; background: rgba(5,8,22,0.95); backdrop-filter: blur(20px); width: 70%; height: auto; padding: 2rem; border-radius: 2rem; transition: 0.3s; gap: 1.5rem; z-index: 99; } .nav-links.active { left: 5%; } .menu-icon { display: block; } }
+        .hero-section { padding-top: 4rem; }
+        .hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; }
+        .hero-title { font-size: 3rem; font-weight: 800; line-height: 1.2; }
+        .hero-subtitle { font-size: 1.2rem; opacity: 0.85; margin: 1rem 0 2rem; }
+        .hero-video-container { position: relative; border-radius: 2rem; overflow: hidden; box-shadow: 0 0 30px rgba(0,243,255,0.3); cursor: pointer; }
+        .hero-bg-video { width: 100%; display: block; border-radius: 2rem; }
+        .video-controls { position: absolute; bottom: 1rem; left: 1rem; right: 1rem; display: flex; justify-content: space-between; gap: 0.5rem; z-index: 5; }
+        .play-pause-btn, .unmute-btn { background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); border: 1px solid #00f3ff; color: #00f3ff; padding: 0.5rem 1rem; border-radius: 2rem; font-size: 0.8rem; cursor: pointer; font-family: 'Orbitron', monospace; transition: 0.2s; }
+        .play-pause-btn:hover, .unmute-btn:hover { background: #00f3ff; color: #050816; box-shadow: 0 0 12px #00f3ff; }
+        .cta-button { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.9rem 2rem; border-radius: 2rem; font-weight: 700; text-decoration: none; transition: 0.2s; }
+        .primary-glow { background: linear-gradient(95deg, #00a6ff, #bf00ff); color: white; box-shadow: 0 0 12px #00f3ff; }
+        .primary-glow:hover { transform: scale(1.02); box-shadow: 0 0 22px #bf00ff; }
+        .secondary { border: 1px solid #00f3ff; color: #00f3ff; background: transparent; }
+        .hero-buttons { display: flex; gap: 1rem; flex-wrap: wrap; }
+        .demo-section .container { display: flex; flex-direction: column; align-items: center; }
+        .demo-video-wrapper { max-width: 800px; width: 100%; margin: 0 auto; padding: 1rem; text-align: center; }
+        .demo-video { width: 100%; border-radius: 1.5rem; }
+        .video-caption { margin-top: 1rem; font-size: 0.9rem; }
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; margin-top: 2rem; }
+        .feature-card { padding: 2rem; text-align: center; }
+        .workflow-steps { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 1rem; margin: 3rem 0; }
+        .step { background: rgba(0, 243, 255, 0.05); backdrop-filter: blur(8px); border-radius: 2rem; padding: 1rem 1.5rem; text-align: center; min-width: 100px; }
+        .step-icon { font-size: 2rem; }
+        .step-arrow i { color: #00f3ff; }
+        .workflow-note { text-align: center; padding: 1rem; width: fit-content; margin: 0 auto; }
+        .testimonials-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.8rem; }
+        .testimonial-card { padding: 1.5rem; }
+        .testimonial-card i { color: #00f3ff; margin-bottom: 1rem; }
+        .pricing-card { max-width: 550px; margin: 0 auto; text-align: center; padding: 2.5rem; }
+        .pricing-badge { background: #bf00ff30; display: inline-block; padding: 0.3rem 1rem; border-radius: 40px; font-size: 0.8rem; }
+        .price { font-size: 3rem; font-weight: 800; margin: 1rem 0; }
+        .price .old-price { font-size: 1.5rem; text-decoration: line-through; opacity: 0.6; margin-right: 1rem; }
+        .pricing-features { list-style: none; text-align: left; margin: 1.5rem 0; }
+        .pricing-features li { margin: 0.8rem 0; }
+        .payment-wrapper { display: grid; grid-template-columns: 1fr 1.5fr; gap: 2rem; padding: 2rem; margin-bottom: 2rem; }
+        .qr-area { text-align: center; }
+        .qr-placeholder { background: rgba(0,0,0,0.6); border-radius: 2rem; padding: 2rem; border: 1px dashed #00f3ff; }
+        .qr-image { width: 180px; height: auto; margin: 1rem auto; display: block; border-radius: 1rem; box-shadow: 0 0 10px rgba(0,243,255,0.3); }
+        .payment-form { display: flex; flex-direction: column; gap: 1rem; }
+        .input-group { display: flex; flex-direction: column; gap: 0.3rem; }
+        .input-group input, .input-group input[type="file"] { background: #0f1422; border: 1px solid #2c3e66; padding: 0.8rem; border-radius: 1rem; color: white; }
+        .input-group input[type="file"] { padding: 0.5rem; }
+        .feedback-message { margin-top: 1rem; font-size: 0.9rem; color: #b9ffb0; }
+        .discount-banner { background: linear-gradient(135deg, #00f3ff20, #bf00ff20); border-left: 4px solid #00f3ff; padding: 0.75rem 1rem; border-radius: 1rem; margin-bottom: 1rem; font-size: 0.9rem; }
+        .admin-table { display: none; margin-top: 2rem; overflow-x: auto; }
+        .admin-table.visible { display: block; }
+        .admin-table table { width: 100%; border-collapse: collapse; }
+        .admin-table th, .admin-table td { padding: 0.75rem; text-align: left; border-bottom: 1px solid rgba(0,243,255,0.2); }
+        .admin-table th { color: #00f3ff; font-family: 'Orbitron', monospace; }
+        .admin-table button.approve-btn { background: #00ff8840; border: 1px solid #00ff88; color: #00ff88; padding: 0.2rem 0.6rem; border-radius: 1rem; cursor: pointer; }
+        .admin-table button.reject-btn { background: #ff444440; border: 1px solid #ff4444; color: #ff4444; padding: 0.2rem 0.6rem; border-radius: 1rem; cursor: pointer; margin-left: 0.5rem; }
+        .faq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 1.5rem; }
+        .faq-item { padding: 1.5rem; }
+        .final-cta .cta-urgency { text-align: center; padding: 3rem; }
+        .huge-btn { padding: 1.2rem 2.5rem; font-size: 1.2rem; margin-top: 1rem; }
+        .urgency-counter { margin-top: 1rem; font-weight: bold; background: #ff005530; display: inline-block; padding: 0.3rem 1rem; border-radius: 40px; }
+        .footer { border-top: 1px solid rgba(0,243,255,0.2); padding: 2rem; text-align: center; }
+        .footer-content { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+        .fade-up { opacity: 0; transform: translateY(25px); transition: opacity 0.7s ease, transform 0.7s ease; }
+        .fade-up.revealed { opacity: 1; transform: translateY(0); }
+        .delay-1 { transition-delay: 0.1s; }
+        .affiliate-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+        .affiliate-form, .affiliate-dashboard { padding: 1.5rem; }
+        .referral-link { background: #0f1422; padding: 0.5rem; border-radius: 1rem; word-break: break-all; font-family: monospace; margin: 1rem 0; }
+        .copy-btn { background: #00f3ff20; border: 1px solid #00f3ff; color: #00f3ff; padding: 0.3rem 0.8rem; border-radius: 1rem; cursor: pointer; font-size: 0.8rem; }
+        .copy-btn:hover { background: #00f3ff; color: #050816; }
+        @media (max-width: 768px) { 
+            .hero-grid, .payment-wrapper, .affiliate-grid { grid-template-columns: 1fr; } 
+            .workflow-steps { flex-direction: column; } 
+            .step-arrow { transform: rotate(90deg); } 
+            .container { padding: 0 1.5rem; } 
+            .hero-title { font-size: 2rem; } 
+            .video-controls { bottom: 0.5rem; left: 0.5rem; right: 0.5rem; } 
+            .play-pause-btn, .unmute-btn { padding: 0.3rem 0.7rem; font-size: 0.7rem; }
+            .demo-video-wrapper { max-width: 100%; }
+            .qr-image { width: 140px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loader, canvas, navbar, hero, demo, features, workflow, testimonials (all identical to previous) -->
+    <div id="loader" class="loader"><div class="loader-content"><div class="neon-loader"></div><span>INITIALIZING NEXUSMARE</span></div></div>
+    <canvas id="particleCanvas"></canvas>
+    <div class="cursor-glow"></div>
+
+    <nav class="navbar glass-panel">
+        <div class="nav-container">
+            <div class="logo" id="adminLogoTrigger">
+                <span class="logo-text">NEXUS<span class="neon">MARE</span></span>
+            </div>
+            <div class="nav-links" id="navLinks">
+                <a href="#hero" class="nav-link">Home</a>
+                <a href="#demo" class="nav-link">Demo</a>
+                <a href="#features" class="nav-link">Features</a>
+                <a href="#workflow" class="nav-link">Workflow</a>
+                <a href="#testimonials" class="nav-link">Testimonials</a>
+                <a href="#pricing" class="nav-link">Pricing</a>
+                <a href="#payment" class="nav-link buy-nav">Buy Now</a>
+                <a href="#affiliate" class="nav-link">Affiliate</a>
+            </div>
+            <div class="menu-icon" id="menuIcon"><i class="fas fa-bars"></i></div>
+        </div>
+    </nav>
+
+    <main>
+        <!-- Hero section (unchanged) -->
+        <section id="hero" class="hero-section">
+            <div class="hero-grid">
+                <div class="hero-content fade-up">
+                    <h1 class="hero-title">Build Full Applications with <span class="neon-gradient">Autonomous AI Agents</span></h1>
+                    <p class="hero-subtitle">MARE (Multi-Agent Real Engine) — deploy production-ready full-stack apps from a single prompt. Planner, Backend, Frontend, QA & Deployment Agents work in sync.</p>
+                    <div class="hero-buttons">
+                        <a href="#payment" class="cta-button primary-glow">Buy Now <i class="fas fa-arrow-right"></i></a>
+                        <a href="#demo" class="cta-button secondary">Watch Demo <i class="fas fa-play"></i></a>
+                    </div>
+                </div>
+                <div class="hero-video-container fade-up delay-1">
+                    <video autoplay muted loop playsinline id="heroVideo" class="hero-bg-video">
+                        <source src="assets/Multi%20Agent%20real%20engine%20How%20it%20works.mp4" type="video/mp4">
+                    </video>
+                    <div class="video-controls">
+                        <button id="playPauseBtn" class="play-pause-btn">⏸️ Pause</button>
+                        <button id="unmuteBtn" class="unmute-btn">🔇 Unmute</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Demo section -->
+        <section id="demo" class="demo-section">
+            <div class="container">
+                <div class="section-header fade-up"><h2>Prompt → App in <span class="highlight">Minutes</span></h2><div class="underline-glow"></div><p>See MARE transforming a single prompt into a full-stack application with intelligent agent collaboration.</p></div>
+                <div class="demo-video-wrapper glass-card fade-up">
+                    <video controls id="demoVideo" class="demo-video">
+                        <source src="assets/live%20demo%20multi%20agent%20real%20engine.mp4" type="video/mp4">
+                    </video>
+                    <div class="video-caption">Live demo: "Full e-commerce dashboard with auth" → deployed in 4min 22s</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features, Workflow, Testimonials (unchanged) -->
+        <section id="features" class="features-section"><div class="container"><div class="section-header fade-up"><h2>Agentic Architecture</h2><div class="underline-glow"></div><p>6 specialized AI agents, zero hallucination, enterprise-grade output</p></div><div class="features-grid"><div class="feature-card glass-card fade-up"><i class="fas fa-brain fa-2x neon-icon"></i><h3>Planner Agent</h3><p>Requirement analysis & architecture blueprint generation.</p></div><div class="feature-card glass-card fade-up"><i class="fas fa-code fa-2x neon-icon"></i><h3>Code Generator Agent</h3><p>Production-ready React, Node, Python code generation.</p></div><div class="feature-card glass-card fade-up"><i class="fas fa-server fa-2x neon-icon"></i><h3>Backend Builder</h3><p>REST APIs, GraphQL, microservices orchestration.</p></div><div class="feature-card glass-card fade-up"><i class="fas fa-database fa-2x neon-icon"></i><h3>Database Architect</h3><p>Schema design, migrations & optimization.</p></div><div class="feature-card glass-card fade-up"><i class="fas fa-vial fa-2x neon-icon"></i><h3>Auto Testing Agent</h3><p>Unit, integration, E2E tests & bug fixing loops.</p></div><div class="feature-card glass-card fade-up"><i class="fas fa-rocket fa-2x neon-icon"></i><h3>Deployment Engine</h3><p>One-click AWS, Vercel, Docker & CI/CD pipelines.</p></div></div></div></section>
+
+        <section id="workflow" class="workflow-section"><div class="container"><div class="section-header fade-up"><h2>Orchestrated Intelligence</h2><div class="underline-glow"></div></div><div class="workflow-steps"><div class="step fade-up"><div class="step-icon"><i class="fas fa-terminal"></i></div><span>Prompt</span></div><div class="step-arrow"><i class="fas fa-chevron-right"></i></div><div class="step fade-up"><div class="step-icon"><i class="fas fa-chalkboard-user"></i></div><span>Planner</span></div><div class="step-arrow"><i class="fas fa-chevron-right"></i></div><div class="step fade-up"><div class="step-icon"><i class="fas fa-layer-group"></i></div><span>Architect</span></div><div class="step-arrow"><i class="fas fa-chevron-right"></i></div><div class="step fade-up"><div class="step-icon"><i class="fas fa-hammer"></i></div><span>Builder</span></div><div class="step-arrow"><i class="fas fa-chevron-right"></i></div><div class="step fade-up"><div class="step-icon"><i class="fas fa-check-double"></i></div><span>QA</span></div><div class="step-arrow"><i class="fas fa-chevron-right"></i></div><div class="step fade-up"><div class="step-icon"><i class="fas fa-globe"></i></div><span>Deploy</span></div></div><div class="workflow-note glass-card fade-up">⚡ Fully autonomous handoff, each agent validates before next stage.</div></div></section>
+
+        <section id="testimonials" class="testimonials-section"><div class="container"><div class="section-header fade-up"><h2>Trusted by 300+ engineering teams</h2><div class="underline-glow"></div></div><div class="testimonials-grid"><div class="testimonial-card glass-card fade-up"><i class="fas fa-quote-left"></i><p>“MARE cut our MVP delivery from 3 months to 6 days. The agents refactored legacy code seamlessly.”</p><h4>— Sophia Chen, CTO at StackForge</h4></div><div class="testimonial-card glass-card fade-up"><i class="fas fa-quote-left"></i><p>“Backend Agent alone is worth $3500. Deployed microservices with auth in 4 hours.”</p><h4>— Marcus V., Lead Architect</h4></div><div class="testimonial-card glass-card fade-up"><i class="fas fa-quote-left"></i><p>“First AI that actually passes my QA checks. Deployment agent saved my weekend.”</p><h4>— James Kim, Freelance Dev</h4></div><div class="testimonial-card glass-card fade-up"><i class="fas fa-quote-left"></i><p>“Agency owner dream: 10x output, clients love the speed. Lifetime license = infinite ROI.”</p><h4>— Danielle Liu, Agency Founder</h4></div><div class="testimonial-card glass-card fade-up"><i class="fas fa-quote-left"></i><p>“Database Architect agent normalized our 20-year messy schema. Insane.”</p><h4>— Oscar R., Data Engineer</h4></div><div class="testimonial-card glass-card fade-up"><i class="fas fa-quote-left"></i><p>“The Planner agent gave me perfect user stories, reduced meetings by 80%.”</p><h4>— Priya Sharma, Product Manager</h4></div><div class="testimonial-card glass-card fade-up"><i class="fas fa-quote-left"></i><p>“Generated full React + Node app from a napkin sketch. Support team is lightning fast.”</p><h4>— Eliott Park, Solo Founder</h4></div><div class="testimonial-card glass-card fade-up"><i class="fas fa-quote-left"></i><p>“We replaced 5 contractors with MARE. QA Agent found 47 hidden bugs day one.”</p><h4>— Natalia Diaz, VP of Eng</h4></div><div class="testimonial-card glass-card fade-up"><i class="fas fa-quote-left"></i><p>“Real-time multi-agent collaboration is magical. This is the future of development.”</p><h4>— Alex Morgan, DevEx Lead</h4></div><div class="testimonial-card glass-card fade-up"><i class="fas fa-quote-left"></i><p>“I built my SaaS MVP in a weekend. MARE is like having 6 senior devs on demand.”</p><h4>— Taylor W., Indie Hacker</h4></div><div class="testimonial-card glass-card fade-up"><i class="fas fa-quote-left"></i><p>“Our enterprise compliance passed after auto-generated tests. Deployment agent = rock solid.”</p><h4>— Jordan B., Security Consultant</h4></div><div class="testimonial-card glass-card fade-up"><i class="fas fa-quote-left"></i><p>“Every agency should buy MARE. We delivered 3 projects simultaneously with zero burnout.”</p><h4>— Samira E., CEO of DevForge</h4></div></div></div></section>
+
+        <!-- Pricing Section (unchanged) -->
+        <section id="pricing" class="pricing-section">
+            <div class="container">
+                <div class="pricing-card glass-card fade-up" id="pricingCard">
+                    <div class="pricing-badge">Founder's Edition</div>
+                    <h3>MARE Lifetime License</h3>
+                    <div class="price" id="priceDisplay">
+                        <span class="old-price" id="oldPrice" style="display: none;">$3,500</span>
+                        <span id="currentPrice">$3,500</span> <span>one-time</span>
+                    </div>
+                    <ul class="pricing-features">
+                        <li><i class="fas fa-check-circle neon-icon"></i> Full ZIP package (6 Agents)</li>
+                        <li><i class="fas fa-check-circle neon-icon"></i> Commercial license unlimited projects</li>
+                        <li><i class="fas fa-check-circle neon-icon"></i> Lifetime updates + priority AI model upgrades</li>
+                        <li><i class="fas fa-check-circle neon-icon"></i> Private Discord & email support</li>
+                        <li><i class="fas fa-check-circle neon-icon"></i> On-premise ready (optional)</li>
+                    </ul>
+                    <a href="#payment" class="cta-button primary-glow full-width">Secure Lifetime Access →</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Payment Section (with required screenshot and validation) -->
+        <section id="payment" class="payment-section">
+            <div class="container">
+                <div class="section-header fade-up">
+                    <h2>Complete your purchase</h2>
+                    <div class="underline-glow"></div>
+                    <p>One-time payment · Manual verification within 1–12 hours</p>
+                </div>
+                <div class="payment-wrapper glass-card">
+                    <div class="qr-area">
+                        <div class="qr-placeholder">
+                            <i class="fas fa-qrcode fa-3x"></i>
+                            <span>Airtm / Crypto QR (USDC, USDT, BTC)</span>
+                            <img src="assets/airtm.jpg" alt="Airtm Payment QR Code" class="qr-image" onerror="this.onerror=null; this.alt='QR code not found'; this.style.opacity=0.5;">
+                            <p class="qr-note">Scan QR code with your wallet or Airtm app. Send exact amount $<span id="qrAmount">3500</span> & save transaction ID.</p>
+                        </div>
+                        <div class="trust-badge"><i class="fas fa-shield-alt"></i> Manual verification by team</div>
+                    </div>
+                    <div class="payment-form-area">
+                        <div id="discountBanner" class="discount-banner" style="display: none;">🎉 You were referred by an approved affiliate! $500 discount applied. Pay only $3,000.</div>
+                        <form id="verificationForm" enctype="multipart/form-data" class="payment-form">
+                            <div class="input-group"><label>Full Name</label><input type="text" id="fullName" placeholder="John Carter" required></div>
+                            <div class="input-group"><label>Email Address</label><input type="email" id="email" placeholder="hello@nexus.com" required></div>
+                            <div class="input-group"><label>Transaction ID (from Airtm/Crypto)</label><input type="text" id="transactionId" placeholder="TX_0x7f9e..." required></div>
+                            <div class="input-group"><label>Screenshot (required, max 30MB, jpg/png/gif/webp)</label><input type="file" id="screenshot" accept="image/jpeg,image/png,image/gif,image/webp" required></div>
+                            <button type="submit" class="cta-button primary-glow full-width">Verify Payment Request <i class="fas fa-shield-alt"></i></button>
+                            <div id="formFeedback" class="feedback-message"></div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Admin tables -->
+                <div id="adminTable" class="admin-table glass-card fade-up">
+                    <h3><i class="fas fa-database neon-icon"></i> Payment Requests</h3>
+                    <div id="submissionsTable"></div>
+                    <hr style="margin: 1rem 0; border-color: #00f3ff30;">
+                    <h3><i class="fas fa-users neon-icon"></i> Affiliate Signups (Pending Approval)</h3>
+                    <div id="pendingAffiliatesTable"></div>
+                    <h3><i class="fas fa-check-circle neon-icon"></i> Approved Affiliates</h3>
+                    <div id="approvedAffiliatesTable"></div>
+                    <h3><i class="fas fa-dollar-sign neon-icon"></i> Commissions Earned</h3>
+                    <div id="commissionsTable"></div>
+                    <p style="font-size: 0.8rem; margin-top: 1rem;">Data stored in secure database.</p>
+                </div>
+                <div class="info-message glass-card glow-subtle">📦 After verification, you'll receive the product ZIP & license.</div>
+            </div>
+        </section>
+
+        <!-- FAQ, Affiliate, Final CTA, Footer (unchanged) -->
+        <section class="faq-section"><div class="container"><div class="section-header fade-up"><h2>Frequently Asked Questions</h2><div class="underline-glow"></div></div><div class="faq-grid"><div class="faq-item glass-card fade-up"><h3>What is MARE exactly?</h3><p>Multi-Agent Real Engine — an autonomous system of 6 AI agents that builds full applications from prompts, producing production-ready code, tests, and deployment.</p></div><div class="faq-item glass-card fade-up"><h3>How do I receive the product?</h3><p>After manual verification of your payment, we email the secure ZIP file with MARE installer, license key, and documentation.</p></div><div class="faq-item glass-card fade-up"><h3>Is delivery instant?</h3><p>Verification is manual (anti-fraud). You'll receive the download within 1–12 hours after submitting correct transaction ID.</p></div><div class="faq-item glass-card fade-up"><h3>Is it secure for enterprises?</h3><p>Yes. MARE runs locally, optional air-gapped. All agents are encrypted and no code leaves your environment.</p></div><div class="faq-item glass-card fade-up"><h3>Can I upgrade later?</h3><p>Lifetime license includes all future agent upgrades and new features at no extra cost.</p></div><div class="faq-item glass-card fade-up"><h3>What if I need refund?</h3><p>Contact support within 14 days for refund eligibility (manual review).</p></div></div></div></section>
+
+        <section id="affiliate" class="affiliate-section">
+            <div class="container">
+                <div class="section-header fade-up">
+                    <h2>🚀 Join Our Affiliate Program</h2>
+                    <div class="underline-glow"></div>
+                    <p>Apply to become an affiliate. Once approved by our team, you'll get a unique link. Earn $1,500 per sale! Your followers get $500 off.</p>
+                </div>
+                <div class="affiliate-grid glass-card">
+                    <div class="affiliate-form">
+                        <h3><i class="fas fa-user-plus neon-icon"></i> Apply Now</h3>
+                        <form id="affiliateApplyForm">
+                            <div class="input-group"><label>Full Name</label><input type="text" id="affName" placeholder="John Carter" required></div>
+                            <div class="input-group"><label>Email</label><input type="email" id="affEmail" placeholder="john@example.com" required></div>
+                            <div class="input-group"><label>Social / Channel (optional)</label><input type="text" id="affSocial" placeholder="YouTube, Twitter, etc."></div>
+                            <button type="submit" class="cta-button primary-glow">Submit Application</button>
+                        </form>
+                        <div id="affiliateMessage"></div>
+                    </div>
+                    <div class="affiliate-dashboard" id="affiliateDashboard" style="display: none;">
+                        <h3><i class="fas fa-chart-line neon-icon"></i> Your Affiliate Dashboard</h3>
+                        <div class="stat"><strong>Your Referral Link:</strong></div>
+                        <div class="referral-link" id="referralLinkText"></div>
+                        <button class="copy-btn" id="copyLinkBtn">Copy Link</button>
+                        <div class="stat"><strong>Clicks:</strong> <span id="clicksCount">0</span></div>
+                        <div class="stat"><strong>Sales:</strong> <span id="salesCount">0</span></div>
+                        <div class="stat"><strong>Earned Commissions:</strong> $<span id="earnedCommissions">0</span></div>
+                        <p style="font-size:0.8rem; margin-top:1rem;">✅ You are approved! Share your link and earn.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="final-cta"><div class="container glass-card cta-urgency"><h2 class="fade-up">🚀 Limited Founder Access Available</h2><p class="fade-up">Only 150 lifetime licenses at $3500 — next batch increases to $5500. Secure your MARE license now.</p><a href="#payment" class="cta-button primary-glow huge-btn fade-up">Claim Lifetime Access →</a><div class="urgency-counter">🔥 37 spots left — high demand</div></div></section>
+
+        <footer class="footer">
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-brand" id="adminFooterTrigger"><span class="logo-text">NEXUS<span class="neon">MARE</span></span><p>Multi-Agent Real Engine © 2025</p></div>
+                    <div class="footer-links"><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Contact</a><a href="#">Status</a></div>
+                    <div class="footer-disclaimer">Demo frontend — manual verification simulation. No automatic payment processing.</div>
+                </div>
+            </div>
+        </footer>
+    </main>
+
+    <script>
+        // ========== FRONTEND WITH FILE UPLOAD (required, 30MB max) ==========
+        const API_BASE = '';
+
+        async function apiFetch(url, options = {}) {
+            const res = await fetch(API_BASE + url, {
+                ...options,
+                credentials: 'include',
+                headers: options.body instanceof FormData ? {} : { 'Content-Type': 'application/json', ...options.headers }
+            });
+            return res.json();
+        }
+
+        // Loader, particles, videos (same as before)
+        (function() {
+            const loader = document.getElementById('loader');
+            if (loader) setTimeout(() => loader.classList.add('hide'), 800);
+            // Particles
+            const canvas = document.getElementById('particleCanvas');
+            let ctx = canvas.getContext('2d');
+            let particles = [];
+            const PARTICLE_COUNT = 100;
+            function initParticles() { particles = []; for (let i = 0; i < PARTICLE_COUNT; i++) { particles.push({ x: Math.random() * window.innerWidth, y: Math.random() * window.innerHeight, radius: Math.random() * 3 + 1, alpha: Math.random() * 0.6 + 0.2, speedX: (Math.random() - 0.5) * 0.4, speedY: (Math.random() - 0.5) * 0.2, }); } }
+            function drawParticles() { if (!ctx) return; ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = '#050816'; ctx.fillRect(0, 0, canvas.width, canvas.height); for (let p of particles) { ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fillStyle = `rgba(0, 243, 255, ${p.alpha})`; ctx.fill(); p.x += p.speedX; p.y += p.speedY; if (p.x < 0) p.x = canvas.width; if (p.x > canvas.width) p.x = 0; if (p.y < 0) p.y = canvas.height; if (p.y > canvas.height) p.y = 0; } requestAnimationFrame(drawParticles); }
+            function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; initParticles(); }
+            window.addEventListener('resize', resizeCanvas); resizeCanvas(); drawParticles();
+            // Video mutual pause
+            const heroVideo = document.getElementById('heroVideo');
+            const demoVideo = document.getElementById('demoVideo');
+            const playPauseBtn = document.getElementById('playPauseBtn');
+            const unmuteBtn = document.getElementById('unmuteBtn');
+            function setupMutualPause(videoA, videoB) { if (!videoA || !videoB) return; videoA.addEventListener('play', () => { if (!videoB.paused) videoB.pause(); }); videoB.addEventListener('play', () => { if (!videoA.paused) videoA.pause(); }); }
+            setupMutualPause(heroVideo, demoVideo);
+            function updatePlayPauseButton() { if (heroVideo.paused) playPauseBtn.innerHTML = '▶️ Play'; else playPauseBtn.innerHTML = '⏸️ Pause'; }
+            if (playPauseBtn && heroVideo) {
+                playPauseBtn.addEventListener('click', (e) => { e.stopPropagation(); heroVideo.paused ? heroVideo.play() : heroVideo.pause(); updatePlayPauseButton(); });
+                heroVideo.addEventListener('play', updatePlayPauseButton); heroVideo.addEventListener('pause', updatePlayPauseButton); updatePlayPauseButton();
+            }
+            const heroVideoContainer = document.querySelector('.hero-video-container');
+            if (heroVideoContainer && heroVideo) {
+                heroVideoContainer.addEventListener('click', (e) => { if (e.target === playPauseBtn || e.target === unmuteBtn) return; heroVideo.paused ? heroVideo.play() : heroVideo.pause(); updatePlayPauseButton(); });
+            }
+            if (heroVideo && unmuteBtn) {
+                unmuteBtn.addEventListener('click', (e) => { e.stopPropagation(); heroVideo.muted = !heroVideo.muted; unmuteBtn.innerHTML = heroVideo.muted ? '🔇 Unmute' : '🔊 Sound On'; unmuteBtn.style.background = heroVideo.muted ? 'rgba(0,0,0,0.7)' : '#00f3ff'; unmuteBtn.style.color = heroVideo.muted ? '#00f3ff' : '#050816'; });
+            }
+            // Scroll reveal, cursor, mobile menu, smooth scroll
+            const glow = document.querySelector('.cursor-glow'); if (glow) document.addEventListener('mousemove', (e) => glow.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`);
+            const observer = new IntersectionObserver((entries) => { entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.add('revealed'); observer.unobserve(entry.target); } }); }, { threshold: 0.15 });
+            document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+            const menuIcon = document.getElementById('menuIcon'); const navLinks = document.getElementById('navLinks');
+            if (menuIcon && navLinks) { menuIcon.addEventListener('click', () => navLinks.classList.toggle('active')); document.querySelectorAll('.nav-link').forEach(link => link.addEventListener('click', () => navLinks.classList.remove('active'))); }
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => { anchor.addEventListener('click', function(e) { e.preventDefault(); const target = document.getElementById(this.getAttribute('href').substring(1)); if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }); });
+        })();
+
+        // ---------- Admin authentication (unchanged) ----------
+        const adminTable = document.getElementById('adminTable');
+        const logoTrigger = document.getElementById('adminLogoTrigger');
+        const footerTrigger = document.getElementById('adminFooterTrigger');
+
+        async function checkAdminSession() {
+            try {
+                const data = await apiFetch('/api/admin/check');
+                if (data.admin) {
+                    adminTable.classList.add('visible');
+                    loadAdminData();
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        async function loginAdmin() {
+            const pwd = prompt('🔐 Admin password:');
+            if (!pwd) return;
+            const res = await apiFetch('/api/admin/login', { method: 'POST', body: JSON.stringify({ password: pwd }) });
+            if (res.success) {
+                alert('Admin access granted');
+                adminTable.classList.add('visible');
+                loadAdminData();
+            } else {
+                alert('Incorrect password');
+            }
+        }
+
+        async function loadAdminData() {
+            try {
+                const payments = await apiFetch('/api/payments');
+                const submissionsList = document.getElementById('submissionsList');
+                if (submissionsList) {
+                    submissionsList.innerHTML = '';
+                    if (payments.length === 0) submissionsList.innerHTML = '<tr><td colspan="4">No payments yet.</td></tr>';
+                    else payments.forEach(p => {
+                        submissionsList.innerHTML += `<tr><td>${escapeHtml(p.fullName)}</td><td>${escapeHtml(p.email)}</td><td>${escapeHtml(p.transactionId)}</td><td>${new Date(p.timestamp).toLocaleString()}</td></tr>`;
+                    });
+                }
+                const affiliates = await apiFetch('/api/admin/affiliates');
+                const pendingContainer = document.getElementById('pendingAffiliatesTable');
+                const approvedContainer = document.getElementById('approvedAffiliatesTable');
+                if (pendingContainer) {
+                    const pending = affiliates.filter(a => a.status === 'pending');
+                    if (pending.length === 0) pendingContainer.innerHTML = '<p>No pending applications.</p>';
+                    else {
+                        let html = '<table><thead><tr><th>Name</th><th>Email</th><th>Social</th><th>Actions</th></tr></thead><tbody>';
+                        pending.forEach(a => {
+                            html += `<tr><td>${escapeHtml(a.name)}</td><td>${escapeHtml(a.email)}</td><td>${escapeHtml(a.social || '-')}</td><td><button class="approve-btn" onclick="approveAffiliate(${a.id})">Approve</button> <button class="reject-btn" onclick="rejectAffiliate(${a.id})">Reject</button></td></tr>`;
+                        });
+                        html += '</tbody></table>';
+                        pendingContainer.innerHTML = html;
+                    }
+                }
+                if (approvedContainer) {
+                    const approved = affiliates.filter(a => a.status === 'approved');
+                    if (approved.length === 0) approvedContainer.innerHTML = '<p>No approved affiliates.</p>';
+                    else {
+                        let html = '<table><thead><tr><th>Name</th><th>Email</th><th>Code</th></tr></thead><tbody>';
+                        approved.forEach(a => {
+                            html += `<tr><td>${escapeHtml(a.name)}</td><td>${escapeHtml(a.email)}</td><td>${escapeHtml(a.code)}</td></tr>`;
+                        });
+                        html += '</tbody></table>';
+                        approvedContainer.innerHTML = html;
+                    }
+                }
+                const commissions = await apiFetch('/api/admin/commissions');
+                const commissionsContainer = document.getElementById('commissionsTable');
+                if (commissionsContainer) {
+                    if (commissions.length === 0) commissionsContainer.innerHTML = '<p>No commissions yet.</p>';
+                    else {
+                        let html = '<table><thead><tr><th>Affiliate Code</th><th>Amount</th><th>Transaction</th><th>Date</th></tr></thead><tbody>';
+                        commissions.forEach(c => {
+                            html += `<tr><td>${escapeHtml(c.affiliateCode)}</td><td>$${c.amount}</td><td>${escapeHtml(c.transactionId || '-')}</td><td>${new Date(c.timestamp).toLocaleString()}</td></tr>`;
+                        });
+                        html += '</tbody></table>';
+                        commissionsContainer.innerHTML = html;
+                    }
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        window.approveAffiliate = async (id) => {
+            await apiFetch('/api/admin/affiliate/approve', { method: 'POST', body: JSON.stringify({ id }) });
+            loadAdminData();
+        };
+        window.rejectAffiliate = async (id) => {
+            await apiFetch('/api/admin/affiliate/reject', { method: 'POST', body: JSON.stringify({ id }) });
+            loadAdminData();
+        };
+
+        if (logoTrigger) logoTrigger.addEventListener('dblclick', loginAdmin);
+        if (footerTrigger) footerTrigger.addEventListener('dblclick', loginAdmin);
+        checkAdminSession();
+
+        // ---------- Payment Form with file upload (required, 30MB, image) ----------
+        const form = document.getElementById('verificationForm');
+        const feedbackDiv = document.getElementById('formFeedback');
+
+        if (form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const fullName = document.getElementById('fullName').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const transactionId = document.getElementById('transactionId').value.trim();
+                const screenshotFile = document.getElementById('screenshot').files[0];
+
+                // Client-side validation
+                if (!fullName || !email || !transactionId) {
+                    feedbackDiv.innerHTML = '<span style="color:#ff8888;">⚠️ Full Name, Email, and Transaction ID are required.</span>';
+                    return;
+                }
+                if (!email.includes('@')) {
+                    feedbackDiv.innerHTML = '<span style="color:#ff8888;">⚠️ Valid email required.</span>';
+                    return;
+                }
+                if (!screenshotFile) {
+                    feedbackDiv.innerHTML = '<span style="color:#ff8888;">⚠️ Screenshot is required.</span>';
+                    return;
+                }
+                // Check file type
+                const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                if (!allowedTypes.includes(screenshotFile.type)) {
+                    feedbackDiv.innerHTML = '<span style="color:#ff8888;">⚠️ Only JPG, PNG, GIF, or WEBP images are allowed.</span>';
+                    return;
+                }
+                // Check file size (30 MB = 30 * 1024 * 1024)
+                if (screenshotFile.size > 30 * 1024 * 1024) {
+                    feedbackDiv.innerHTML = '<span style="color:#ff8888;">⚠️ File size must be less than 30MB.</span>';
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('fullName', fullName);
+                formData.append('email', email);
+                formData.append('transactionId', transactionId);
+                formData.append('screenshot', screenshotFile);
+
+                try {
+                    const res = await fetch(API_BASE + '/api/payments', {
+                        method: 'POST',
+                        body: formData,
+                        credentials: 'include'
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        feedbackDiv.innerHTML = `<span style="color:#a0ffc0;">✅ Your payment is under verification. Once approved, you will receive the product ZIP & license. Our team will contact you at ${email}.</span>`;
+                        form.reset();
+                        const ref = new URLSearchParams(window.location.search).get('ref');
+                        if (ref) {
+                            await apiFetch('/api/commission', {
+                                method: 'POST',
+                                body: JSON.stringify({ affiliateCode: ref, transactionId, buyerEmail: email, amount: 1500 })
+                            });
+                        }
+                    } else {
+                        feedbackDiv.innerHTML = `<span style="color:#ff8888;">⚠️ ${data.error || 'Server error. Please try again.'}</span>`;
+                    }
+                } catch (err) {
+                    feedbackDiv.innerHTML = '<span style="color:#ff8888;">⚠️ Network error. Please check your connection.</span>';
+                }
+            });
+        }
+
+        // ---------- Affiliate apply & dashboard (unchanged) ----------
+        const applyForm = document.getElementById('affiliateApplyForm');
+        const affiliateMessage = document.getElementById('affiliateMessage');
+        const affiliateDashboard = document.getElementById('affiliateDashboard');
+        const referralLinkText = document.getElementById('referralLinkText');
+        const clicksSpan = document.getElementById('clicksCount');
+        const salesSpan = document.getElementById('salesCount');
+        const earnedSpan = document.getElementById('earnedCommissions');
+
+        async function loadAffiliateDashboard(email) {
+            const data = await apiFetch('/api/affiliate/dashboard', { method: 'POST', body: JSON.stringify({ email }) });
+            if (data.exists && data.status === 'approved') {
+                const link = `${window.location.origin}${window.location.pathname}?ref=${data.code}`;
+                referralLinkText.innerText = link;
+                clicksSpan.innerText = data.clicks;
+                salesSpan.innerText = data.sales;
+                earnedSpan.innerText = data.earnings;
+                affiliateDashboard.style.display = 'block';
+                sessionStorage.setItem('affiliateEmail', email);
+            } else if (data.exists && data.status === 'pending') {
+                affiliateMessage.innerHTML = '<span style="color:#ffaa00;">Your application is pending admin approval.</span>';
+            } else if (data.exists && data.status === 'rejected') {
+                affiliateMessage.innerHTML = '<span style="color:#ff8888;">Application rejected.</span>';
+            }
+        }
+
+        if (applyForm) {
+            applyForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('affName').value.trim();
+                const email = document.getElementById('affEmail').value.trim();
+                const social = document.getElementById('affSocial').value.trim();
+                if (!name || !email) {
+                    affiliateMessage.innerHTML = '<span style="color:#ff8888;">Name and email required.</span>';
+                    return;
+                }
+                const res = await apiFetch('/api/affiliate/apply', { method: 'POST', body: JSON.stringify({ name, email, social }) });
+                if (res.status === 'pending') {
+                    affiliateMessage.innerHTML = '<span style="color:#a0ffc0;">✅ Application submitted! Awaiting admin approval.</span>';
+                    applyForm.reset();
+                } else if (res.status === 'approved') {
+                    affiliateMessage.innerHTML = '<span style="color:#a0ffc0;">You are already an approved affiliate! Dashboard loaded.</span>';
+                    loadAffiliateDashboard(email);
+                } else {
+                    affiliateMessage.innerHTML = '<span style="color:#ff8888;">Error. Please try again.</span>';
+                }
+            });
+        }
+
+        const savedAffEmail = sessionStorage.getItem('affiliateEmail');
+        if (savedAffEmail) loadAffiliateDashboard(savedAffEmail);
+
+        const copyBtn = document.getElementById('copyLinkBtn');
+        if (copyBtn) {
+            copyBtn.addEventListener('click', () => {
+                const link = referralLinkText.innerText;
+                if (link) {
+                    navigator.clipboard.writeText(link);
+                    alert('Link copied!');
+                }
+            });
+        }
+
+        // Track affiliate click and discount
+        const urlRef = new URLSearchParams(window.location.search).get('ref');
+        if (urlRef) {
+            (async () => {
+                await apiFetch('/api/affiliate/click', { method: 'POST', body: JSON.stringify({ code: urlRef }) });
+                const banner = document.getElementById('discountBanner');
+                if (banner) banner.style.display = 'block';
+                const priceSpan = document.getElementById('currentPrice');
+                const oldPriceSpan = document.getElementById('oldPrice');
+                const qrAmountSpan = document.getElementById('qrAmount');
+                if (priceSpan) {
+                    oldPriceSpan.style.display = 'inline';
+                    priceSpan.innerText = '$3,000';
+                    if (qrAmountSpan) qrAmountSpan.innerText = '3000';
+                }
+            })();
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+    </script>
+</body>
+</html>
